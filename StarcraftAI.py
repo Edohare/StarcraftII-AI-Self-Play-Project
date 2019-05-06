@@ -2,7 +2,8 @@ import sc2
 from sc2 import run_game, maps, Race, Difficulty
 
 from sc2.player import Bot, Computer
-from sc2.constants import NEXUS, PROBE, PYLON, ASSIMILATOR
+from sc2.constants import NEXUS, PROBE, PYLON, ASSIMILATOR, GATEWAY, \
+CYBERNETICSCORE, STALKER
 
 class edbot(sc2.BotAI):
     async def on_step(self, iteration):
@@ -11,6 +12,8 @@ class edbot(sc2.BotAI):
         await self.build_pylons()
         await self.build_assimilators()
         await self.expand()
+        await self.offensive_force_buildings()
+        await self.offensive_force()
 
     async def build_workers(self):
         for nexus in self.units(NEXUS).ready.noqueue:
@@ -41,8 +44,26 @@ class edbot(sc2.BotAI):
         if self.units(NEXUS).amount < 3 and self.can_afford(NEXUS):
             await self.expand_now()
 
+    async def offensive_force_buildings(self):
+        if self.units(PYLON).ready.exists:
+            pylon =  self.units(PYLON).ready.random
+            if self.units(GATEWAY).ready.exists:
+                if not self.units(CYBERNETICSCORE):
+                    if self.can_afford(CYBERNETICSCORE) and not self.already_pending(CYBERNETICSCORE):
+                        await self.build(CYBERNETICSCORE, near=pylon)
+            else:
+                if self.can_afford(GATEWAY) and not self.already_pending(GATEWAY):
+                    await self.build(GATEWAY, near=pylon)
+
+    async def offensive_force(self):
+        for gw in self.units(GATEWAY).ready.noqueue:
+            if self.can_afford(STALKER) and self.supply_left > 0:
+                await self.do(gw.train(STALKER))
+
 
 run_game(maps.get("AbyssalReefLE"), [
     Bot(Race.Protoss, edbot()),
     Computer(Race.Terran, Difficulty.Easy)
     ], realtime = False)
+
+ 
